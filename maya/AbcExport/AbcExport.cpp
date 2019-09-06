@@ -330,25 +330,20 @@ try
                 jobArgs.noNormals = true;
             }
 
-            else if (arg == "-ng" || arg == "-nogeom")
-           {
-               jobArgs.writeGeometry = false;
-           }
-
             else if (arg == "-uvo" || arg == "-uvsonly")
-           {
-               jobArgs.writeMeshes = true;
-               jobArgs.writeUVs= true;
-               jobArgs.writeGeometry = false;
-               jobArgs.noNormals = true;
-               jobArgs.writeCurvesGroup = false;
-               jobArgs.writeTransforms = true;
-               jobArgs.writeLocators = false;
-               jobArgs.writeParticles = false;
-               jobArgs.writeCameras = false;
-               jobArgs.writeNurbsSurfaces = false;
-               jobArgs.writeNurbsCurves = false;
-           }
+            {
+                jobArgs.writeMeshes = true;
+                jobArgs.writeUVs= true;
+                jobArgs.writeGeometry = false;
+                jobArgs.noNormals = true;
+                jobArgs.writeCurvesGroup = false;
+                jobArgs.writeTransforms = false;
+                jobArgs.writeLocators = false;
+                jobArgs.writeParticles = false;
+                jobArgs.writeCameras = false;
+                jobArgs.writeNurbsSurfaces = false;
+                jobArgs.writeNurbsCurves = false;
+            }
 
             else if (arg == "-pr" || arg == "-preroll")
             {
@@ -671,7 +666,7 @@ try
 
             // check the path must exist before writing
             MFileObject absoluteFilePath;
-            absoluteFilePath.setRawFullName(absoluteFile.path());
+            absoluteFilePath.setRawFullName(absoluteFile.resolvedPath());
             if (!absoluteFilePath.exists()) {
                 MString error;
                 error.format("Path ^1s does not exist!", absoluteFilePath.resolvedFullName());
@@ -687,22 +682,49 @@ try
                     continue;
                 }
 
-                MPlug abcFilePlug = alembicNode.findPlug("abc_File");
-                if (abcFilePlug.isNull()) {
-                    continue;
+                MPlug abcFilePlug = alembicNode.findPlug("abc_File", true);
+                if (!abcFilePlug.isNull())
+                {
+                    MFileObject alembicFile;
+                    alembicFile.setRawFullName(abcFilePlug.asString());
+                    if (alembicFile.exists())
+                    {
+                        if (alembicFile.resolvedFullName() == absoluteFile.resolvedFullName())
+                        {
+                            MString error = "Can't export to an Alembic file which is in use: ";
+                            error += absoluteFile.resolvedFullName();
+                            MGlobal::displayError(error);
+                            return MS::kFailure;
+                        }
+                    }
                 }
 
-                MFileObject alembicFile;
-                alembicFile.setRawFullName(abcFilePlug.asString());
-                if (!alembicFile.exists()) {
-                    continue;
+                MPlug abcLayerFilePlug = alembicNode.findPlug("abc_layerFiles", true);
+                if (!abcLayerFilePlug.isNull())
+                {
+                    MFnStringArrayData fnSAD( abcLayerFilePlug.asMObject() );
+                    MStringArray layerFilenames = fnSAD.array();
+
+                    for( unsigned int l = 0; l < layerFilenames.length(); l++ )
+                    {
+                        MFileObject thisAlembicFile;
+                        thisAlembicFile.setRawFullName(abcFilePlug.asString());
+
+                        if (!thisAlembicFile.exists())
+                        {
+                            continue;
+                        }
+
+                        if (thisAlembicFile.resolvedFullName() == absoluteFile.resolvedFullName())
+                        {
+                            MString error = "Can't export to an Alembic file which is in use: ";
+                            error += absoluteFile.resolvedFullName();
+                            MGlobal::displayError(error);
+                            return MS::kFailure;
+                        }
+                    }
                 }
 
-                if (alembicFile.resolvedFullName() == absoluteFile.resolvedFullName()) {
-                    MString error = "Can't export to an Alembic file which is in use.";
-                    MGlobal::displayError(error);
-                    return MS::kFailure;
-                }
             }
 
             std::ofstream ofs(fileName.c_str());
@@ -819,7 +841,7 @@ try
                 }
 
                 // pattern mismatch, we use acyclic time sampling type
-                if (timeSamples[i] != pattern[i % pattern.size()])
+                if (fabs(timeSamples[i] - pattern[i % pattern.size()]) > 0.00001)
                 {
                     isAcyclic = true;
                     break;

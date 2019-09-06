@@ -33,8 +33,8 @@
 //
 //-*****************************************************************************
 
-#ifndef _Alembic_Ogawa_OStream_h_
-#define _Alembic_Ogawa_OStream_h_
+#ifndef Alembic_Ogawa_OStream_h
+#define Alembic_Ogawa_OStream_h
 
 #include <Alembic/Util/Export.h>
 #include <Alembic/Ogawa/Foundation.h>
@@ -42,7 +42,7 @@
 #include <ostream>
 
 #if defined _WIN32 || defined _WIN64
-	#define STREAM_BUF_SIZE 1024*1024*2
+    #define STREAM_BUF_SIZE 1024*1024*2
 #endif
 
 namespace Alembic {

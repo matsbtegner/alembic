@@ -125,17 +125,14 @@ namespace
                 // The transform node as well as the curve node need to be
                 // deleted once the trim is done, because after all this is not
                 // the equivalent of "curveOnSurface" command
-				MFnNurbsCurveData data;
-				MObject curveData = data.create();
+                MFnNurbsCurveData data;
+                MObject curveData = data.create();
                 MObject curve2D = fnCurve.create(cvs, dknots, degree,
-                    MFnNurbsCurve::kOpen, true, true,
-                    curveData, &status);
+                    MFnNurbsCurve::kOpen, true, true, curveData, &status);
 
                 if (status == MS::kSuccess)
                 {
-                    {
-                        trimLoop.append(curveData);
-                    }
+                    trimLoop.append(curveData);
                 }
             }
             trimBoundaryArray.append(trimLoop);
@@ -276,8 +273,8 @@ MObject readNurbs(double iFrame, Alembic::AbcGeom::INuPatch & iNode,
 
     MString surfaceName(iNode.getName().c_str());
 
-    unsigned int degreeU  = samp.getUOrder() - 1;
-    unsigned int degreeV  = samp.getVOrder() - 1;
+    unsigned int degreeU  = samp.getUOrder() > 0 ? samp.getUOrder() - 1 : 0;
+    unsigned int degreeV  = samp.getVOrder() > 0 ? samp.getVOrder() - 1 : 0;
     unsigned int numCVInU = samp.getNumU();
     unsigned int numCVInV = samp.getNumV();
 
@@ -363,7 +360,11 @@ MObject readNurbs(double iFrame, Alembic::AbcGeom::INuPatch & iNode,
     Alembic::Abc::FloatArraySamplePtr uKnot = samp.getUKnot();
     Alembic::Abc::FloatArraySamplePtr vKnot = samp.getVKnot();
 
-    unsigned int numKnotsInU = static_cast<unsigned int>(uKnot->size() - 2);
+    unsigned int numKnotsInU = 0;
+    if (uKnot->size() > 2)
+    {
+        numKnotsInU = static_cast<unsigned int>(uKnot->size() - 2);
+    }
     MDoubleArray uKnotSequences;
     uKnotSequences.setLength(numKnotsInU);
     for (unsigned int i = 0; i < numKnotsInU; ++i)
@@ -371,7 +372,11 @@ MObject readNurbs(double iFrame, Alembic::AbcGeom::INuPatch & iNode,
         uKnotSequences.set((*uKnot)[i+1], i);
     }
 
-    unsigned int numKnotsInV = static_cast<unsigned int>(vKnot->size() - 2);
+    unsigned int numKnotsInV =  0;
+    if (vKnot->size() > 2)
+    {
+        numKnotsInV = static_cast<unsigned int>(vKnot->size() - 2);
+    }
     MDoubleArray vKnotSequences;
     vKnotSequences.setLength(numKnotsInV);
     for (unsigned int i = 0; i < numKnotsInV; i++)
@@ -400,6 +405,7 @@ MObject readNurbs(double iFrame, Alembic::AbcGeom::INuPatch & iNode,
     }
     else
     {
+        MGlobal::displayError(status.errorString());
         MString errorMsg = "Could not create Nurbs Surface: ";
         errorMsg += surfaceName;
         MGlobal::displayError(errorMsg);

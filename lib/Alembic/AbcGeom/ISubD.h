@@ -34,8 +34,8 @@
 //
 //-*****************************************************************************
 
-#ifndef _Alembic_AbcGeom_ISubD_h_
-#define _Alembic_AbcGeom_ISubD_h_
+#ifndef Alembic_AbcGeom_ISubD_h
+#define Alembic_AbcGeom_ISubD_h
 
 #include <Alembic/Util/Export.h>
 #include <Alembic/AbcGeom/Foundation.h>
@@ -185,7 +185,10 @@ public:
 
     //! The default constructor creates an empty ISubDSchema
     //! ...
-    ISubDSchema() {}
+    ISubDSchema()
+    {
+        m_faceSetsLoaded = false;
+    }
 
     //! This constructor creates a new subd reader.
     //! The first argument is the parent ICompoundProperty, from which the

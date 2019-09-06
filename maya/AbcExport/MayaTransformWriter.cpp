@@ -45,7 +45,7 @@ void addTranslate(const MFnDependencyNode & iTrans,
 {
     Alembic::AbcGeom::XformOp op(Alembic::AbcGeom::kTranslateOperation, iHint);
 
-    MPlug xPlug = iTrans.findPlug(xName);
+    MPlug xPlug = iTrans.findPlug(xName, true);
     int xSamp = 0;
     if (!forceStatic)
     {
@@ -56,7 +56,7 @@ void addTranslate(const MFnDependencyNode & iTrans,
     }
     double xVal = xPlug.asDouble();
 
-    MPlug yPlug = iTrans.findPlug(yName);
+    MPlug yPlug = iTrans.findPlug(yName, true);
     int ySamp = 0;
     if (!forceStatic)
     {
@@ -67,7 +67,7 @@ void addTranslate(const MFnDependencyNode & iTrans,
     }
     double yVal = yPlug.asDouble();
 
-    MPlug zPlug = iTrans.findPlug(zName);
+    MPlug zPlug = iTrans.findPlug(zName, true);
     int zSamp = 0;
     if (!forceStatic)
     {
@@ -81,7 +81,7 @@ void addTranslate(const MFnDependencyNode & iTrans,
     // this is to handle the case where there is a connection to the parent
     // plug but not to the child plugs, if the connection is there then all
     // of the children are considered animated
-    MPlug parentPlug = iTrans.findPlug(parentName);
+    MPlug parentPlug = iTrans.findPlug(parentName, true);
     int parentSamp = 0;
     if (!forceStatic)
     {
@@ -172,7 +172,7 @@ void addRotate(const MFnDependencyNode & iTrans,
     // this is to handle the case where there is a connection to the parent
     // plug but not to the child plugs, if the connection is there then all
     // of the children are considered animated
-    MPlug parentPlug = iTrans.findPlug(parentName);
+    MPlug parentPlug = iTrans.findPlug(parentName, true);
     int parentSamp = 0;
     if (!forceStatic)
     {
@@ -190,7 +190,7 @@ void addRotate(const MFnDependencyNode & iTrans,
     for (; i > -1; i--)
     {
         unsigned int index = iOrder[i];
-        MPlug plug = iTrans.findPlug(iNames[index]);
+        MPlug plug = iTrans.findPlug(iNames[index], true);
         int samp = 0;
         if (!forceStatic)
         {
@@ -237,7 +237,7 @@ void addShear(const MFnDependencyNode & iTrans, bool forceStatic,
         Alembic::AbcGeom::kMayaShearHint);
 
     MString str = "shearXY";
-    MPlug xyPlug = iTrans.findPlug(str);
+    MPlug xyPlug = iTrans.findPlug(str, true);
     int xySamp = 0;
     if (!forceStatic)
     {
@@ -246,7 +246,7 @@ void addShear(const MFnDependencyNode & iTrans, bool forceStatic,
     double xyVal = xyPlug.asDouble();
 
     str = "shearXZ";
-    MPlug xzPlug = iTrans.findPlug(str);
+    MPlug xzPlug = iTrans.findPlug(str, true);
     int xzSamp = 0;
     if (!forceStatic)
     {
@@ -255,7 +255,7 @@ void addShear(const MFnDependencyNode & iTrans, bool forceStatic,
     double xzVal = xzPlug.asDouble();
 
     str = "shearYZ";
-    MPlug yzPlug = iTrans.findPlug(str);
+    MPlug yzPlug = iTrans.findPlug(str, true);
     int yzSamp = 0;
     if (!forceStatic)
     {
@@ -267,7 +267,7 @@ void addShear(const MFnDependencyNode & iTrans, bool forceStatic,
     // plug but not to the child plugs, if the connection is there then all
     // of the children are considered animated
     str = "shear";
-    MPlug parentPlug = iTrans.findPlug(str);
+    MPlug parentPlug = iTrans.findPlug(str, true);
     if (!forceStatic && util::getSampledType(parentPlug) != 0)
     {
         xySamp = 1;
@@ -331,7 +331,7 @@ void addScale(const MFnDependencyNode & iTrans,
     Alembic::AbcGeom::XformOp op(Alembic::AbcGeom::kScaleOperation,
         Alembic::AbcGeom::kScaleHint);
 
-    MPlug xPlug = iTrans.findPlug(xName);
+    MPlug xPlug = iTrans.findPlug(xName, true);
     int xSamp = 0;
     if (!forceStatic)
     {
@@ -342,7 +342,7 @@ void addScale(const MFnDependencyNode & iTrans,
     }
     double xVal = xPlug.asDouble();
 
-    MPlug yPlug = iTrans.findPlug(yName);
+    MPlug yPlug = iTrans.findPlug(yName, true);
     int ySamp = 0;
     if (!forceStatic)
     {
@@ -353,7 +353,7 @@ void addScale(const MFnDependencyNode & iTrans,
     }
     double yVal = yPlug.asDouble();
 
-    MPlug zPlug = iTrans.findPlug(zName);
+    MPlug zPlug = iTrans.findPlug(zName, true);
     int zSamp = 0;
     if (!forceStatic)
     {
@@ -367,7 +367,7 @@ void addScale(const MFnDependencyNode & iTrans,
     // this is to handle the case where there is a connection to the parent
     // plug but not to the child plugs, if the connection is there then all
     // of the children are considered animated
-    MPlug parentPlug = iTrans.findPlug(parentName);
+    MPlug parentPlug = iTrans.findPlug(parentName, true);
     int parentSamp = 0;
     if (!forceStatic)
     {
@@ -527,13 +527,18 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
         mAttrs = AttributesWriterPtr(new AttributesWriter(cp, up, obj, joint,
             iTimeIndex, iArgs, false));
 
+        if (!iArgs.writeTransforms)
+        {
+            return;
+        }
+
         if (!iArgs.worldSpace)
         {
             pushTransformStack(joint, iTimeIndex == 0);
 
             // need to look at inheritsTransform
             MFnDagNode dagNode(iDag);
-            MPlug inheritPlug = dagNode.findPlug("inheritsTransform");
+            MPlug inheritPlug = dagNode.findPlug("inheritsTransform", true);
             if (!inheritPlug.isNull())
             {
                 if (util::getSampledType(inheritPlug) != 0)
@@ -581,6 +586,10 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
 
         mAttrs = AttributesWriterPtr(new AttributesWriter(cp, up, obj, trans,
             iTimeIndex, iArgs, false));
+        if (!iArgs.writeTransforms)
+        {
+            return;
+        }
 
         if (!iArgs.worldSpace)
         {
@@ -588,7 +597,7 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
 
             // need to look at inheritsTransform
             MFnDagNode dagNode(iDag);
-            MPlug inheritPlug = dagNode.findPlug("inheritsTransform");
+            MPlug inheritPlug = dagNode.findPlug("inheritsTransform", true);
             if (!inheritPlug.isNull())
             {
                 if (util::getSampledType(inheritPlug) != 0)
@@ -631,7 +640,7 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
 
         // inheritsTransform exists on both joints and transforms
         MFnDagNode dagNode(dag);
-        MPlug inheritPlug = dagNode.findPlug("inheritsTransform");
+        MPlug inheritPlug = dagNode.findPlug("inheritsTransform", true);
 
         // if inheritsTransform exists and is set to false, then we
         // don't need to worry about ancestor nodes above this one
@@ -677,7 +686,7 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
 
     // need to look at inheritsTransform
     MFnDagNode dagNode(iDag);
-    MPlug inheritPlug = dagNode.findPlug("inheritsTransform");
+    MPlug inheritPlug = dagNode.findPlug("inheritsTransform", true);
     if (!inheritPlug.isNull())
     {
         if (util::getSampledType(inheritPlug) != 0)
@@ -735,6 +744,11 @@ MayaTransformWriter::MayaTransformWriter(MayaTransformWriter & iParent,
         mAttrs = AttributesWriterPtr(new AttributesWriter(cp, up, obj, joint,
             iTimeIndex, iArgs, false));
 
+        if (!iArgs.writeTransforms)
+        {
+            return;
+        }
+
         pushTransformStack(joint, iTimeIndex == 0);
     }
     else
@@ -759,13 +773,18 @@ MayaTransformWriter::MayaTransformWriter(MayaTransformWriter & iParent,
         mAttrs = AttributesWriterPtr(new AttributesWriter(cp, up, obj, trans,
             iTimeIndex, iArgs, false));
 
+        if (!iArgs.writeTransforms)
+        {
+            return;
+        }
+
         pushTransformStack(trans, iTimeIndex == 0);
     }
 
 
     // need to look at inheritsTransform
     MFnDagNode dagNode(iDag);
-    MPlug inheritPlug = dagNode.findPlug("inheritsTransform");
+    MPlug inheritPlug = dagNode.findPlug("inheritsTransform", true);
     if (!inheritPlug.isNull())
     {
         if (util::getSampledType(inheritPlug) != 0)
@@ -966,7 +985,7 @@ void MayaTransformWriter::pushTransformStack(const MFnIkJoint & iJoint,
 
     // inspect the inverseParent scale
     // [IS] is ignored when Segment Scale Compensate is false
-    MPlug scaleCompensatePlug = iJoint.findPlug("segmentScaleCompensate");
+    MPlug scaleCompensatePlug = iJoint.findPlug("segmentScaleCompensate", true);
     if (scaleCompensatePlug.asBool())
     {
         addScale(iJoint, "inverseScale", "inverseScaleX", "inverseScaleY",

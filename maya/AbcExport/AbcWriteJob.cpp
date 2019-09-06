@@ -267,7 +267,7 @@ MBoundingBox AbcWriteJob::getBoundingBox(double iFrame, const MMatrix & eMInvMat
             {
                 // check for riCurves flag for flattening all curve object to
                 // one curve group
-                MPlug riCurvesPlug = dagNode.findPlug("riCurves", &status);
+                MPlug riCurvesPlug = dagNode.findPlug("riCurves", true, &status);
                 if ( status == MS::kSuccess && riCurvesPlug.asBool() == true)
                 {
                     MBoundingBox box = dagNode.boundingBox();
@@ -389,7 +389,7 @@ void AbcWriteJob::setup(double iFrame, MayaTransformWriterPtr iParent, GetMember
 
     // look for riCurves flag for flattening all curve objects to a curve group
     MFnDependencyNode fnDepNode(ob, &status);
-    MPlug riCurvesPlug = fnDepNode.findPlug("riCurves", &status);
+    MPlug riCurvesPlug = fnDepNode.findPlug("riCurves", true, &status);
     bool riCurvesVal = riCurvesPlug.asBool();
     bool writeOutAsGroup = false;
     if (riCurvesVal)
@@ -445,43 +445,42 @@ void AbcWriteJob::setup(double iFrame, MayaTransformWriterPtr iParent, GetMember
     {
        MayaTransformWriterPtr trans;
 
-       if( mArgs.writeTransforms )
-       {
-           MFnTransform fnTrans(ob, &status);
-           if (status != MS::kSuccess)
-           {
-               MString msg = "Initialize transform node ";
-               msg += mCurDag.fullPathName();
-               msg += " failed, skipping.";
-               MGlobal::displayWarning(msg);
-               return;
-           }
+        MFnTransform fnTrans(ob, &status);
+        if (status != MS::kSuccess)
+        {
+            MString msg = "Initialize transform node ";
+           msg += mCurDag.fullPathName();
+           msg += " failed, skipping.";
+           MGlobal::displayWarning(msg);
+            return;
+        }
 
-           // parented to the root case
-           if (iParent == NULL)
-           {
-               Alembic::Abc::OObject obj = mRoot.getTop();
-               trans = MayaTransformWriterPtr(new MayaTransformWriter(
-                   obj, mCurDag, mTransTimeIndex, mArgs));
-           }
-           else
-           {
-               trans = MayaTransformWriterPtr(new MayaTransformWriter(
-                   *iParent, mCurDag, mTransTimeIndex, mArgs));
-           }
+        // parented to the root case
+        if (iParent == NULL)
+        {
+            Alembic::Abc::OObject obj = mRoot.getTop();
+            trans = MayaTransformWriterPtr(new MayaTransformWriter(
+                obj, mCurDag, mTransTimeIndex, mArgs));
+        }
+        else
+        {
+            trans = MayaTransformWriterPtr(new MayaTransformWriter(
+                *iParent, mCurDag, mTransTimeIndex, mArgs));
+        }
 
-           if (trans->isAnimated() && mTransTimeIndex != 0)
-           {
-               mTransList.push_back(trans);
-               mStats.mTransAnimNum++;
-           }
-           else
-               mStats.mTransStaticNum++;
+        if (trans->isAnimated() && mTransTimeIndex != 0)
+        {
+           mTransList.push_back(trans);
+            mStats.mTransAnimNum++;
+        }
+        else
+        {
+            mStats.mTransStaticNum++;
+        }
 
-           AttributesWriterPtr attrs = trans->getAttrs();
-           if (mTransTimeIndex != 0 && attrs->isAnimated())
-               mTransAttrList.push_back(attrs);
-       }
+        AttributesWriterPtr attrs = trans->getAttrs();
+        if (mTransTimeIndex != 0 && attrs->isAnimated())
+            mTransAttrList.push_back(attrs);
 
         // loop through the children, making sure to push and pop them
         // from the MDagPath

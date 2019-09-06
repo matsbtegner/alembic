@@ -34,8 +34,8 @@
 //
 //-*****************************************************************************
 
-#ifndef _Alembic_AbcGeom_ONuPatch_h_
-#define _Alembic_AbcGeom_ONuPatch_h_
+#ifndef Alembic_AbcGeom_ONuPatch_h
+#define Alembic_AbcGeom_ONuPatch_h
 
 #include <Alembic/Util/Export.h>
 #include <Alembic/AbcGeom/Foundation.h>
@@ -50,7 +50,7 @@ namespace ALEMBIC_VERSION_NS {
 
 //-*****************************************************************************
 // for default "null" values for the int scalar properties
-static ALEMBIC_EXPORT_CONST 
+static ALEMBIC_EXPORT_CONST
 int32_t ABC_GEOM_NUPATCH_NULL_INT_VALUE( INT_MIN / 4 );
 
 //-*****************************************************************************
@@ -254,7 +254,7 @@ public:
                 (m_numV != ABC_GEOM_NUPATCH_NULL_INT_VALUE) ||
                 (m_uOrder != ABC_GEOM_NUPATCH_NULL_INT_VALUE) ||
                 (m_vOrder != ABC_GEOM_NUPATCH_NULL_INT_VALUE) ||
-                 m_uKnot || m_uKnot)
+                 m_uKnot || m_vKnot)
                  return true;
             else
                 return false;
@@ -311,7 +311,12 @@ public:
 
     //! The default constructor creates an empty ONuPatchSchema
     //! ...
-    ONuPatchSchema() {}
+    ONuPatchSchema()
+    {
+        m_selectiveExport = false;
+        m_numSamples = 0;
+        m_timeSamplingIndex = 0;
+    }
 
     //! This constructor creates a new poly mesh writer.
     //! The first argument is an CompoundPropertyWriterPtr to use as a parent.

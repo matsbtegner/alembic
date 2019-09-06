@@ -34,8 +34,8 @@
 //
 //-*****************************************************************************
 
-#ifndef _Alembic_AbcGeom_OPolyMesh_h_
-#define _Alembic_AbcGeom_OPolyMesh_h_
+#ifndef Alembic_AbcGeom_OPolyMesh_h
+#define Alembic_AbcGeom_OPolyMesh_h
 
 #include <Alembic/Util/Export.h>
 #include <Alembic/AbcGeom/Foundation.h>
@@ -167,7 +167,12 @@ public:
 
     //! The default constructor creates an empty OPolyMeshSchema
     //! ...
-    OPolyMeshSchema() {}
+    OPolyMeshSchema()
+    {
+        m_selectiveExport = false;
+        m_numSamples = 0;
+        m_timeSamplingIndex = 0;
+    }
 
     //! This constructor creates a new poly mesh writer.
     //! The first argument is an CompoundPropertyWriterPtr to use as a parent.

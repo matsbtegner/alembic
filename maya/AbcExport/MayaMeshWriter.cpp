@@ -158,7 +158,7 @@ getOutConnectedSG( const MDagPath &shapeDPath )
 
     // iterate through the output connected shading engines
     for( ; itDG.isDone()!= true; itDG.next() )
-        connSG.append( itDG.thisNode() );
+        connSG.append( itDG.currentItem() );
 
     return connSG;
 }
@@ -337,7 +337,7 @@ MayaMeshWriter::MayaMeshWriter(MDagPath & iDag,
     name = util::stripNamespaces(name, iArgs.stripNamespace);
 
     // check to see if this poly has been tagged as a SubD
-    MPlug plug = lMesh.findPlug("SubDivisionMesh");
+    MPlug plug = lMesh.findPlug("SubDivisionMesh", true);
 
     // if there is flag "autoSubd", and NO "SubDivisionMesh" was defined,
     // let's check whether the mesh has crease edge, crease vertex or holes
@@ -359,9 +359,15 @@ MayaMeshWriter::MayaMeshWriter(MDagPath & iDag,
 #endif
     }
 
+    Alembic::Abc::SparseFlag sf = Alembic::Abc::kFull;
+    if ( !mWriteGeometry )
+    {
+        sf = Alembic::Abc::kSparse;
+    }
+
     if ( (!plug.isNull() && plug.asBool()) || hasToWriteSubd )
     {
-        Alembic::AbcGeom::OSubD obj(iParent, name.asChar(), iTimeIndex);
+        Alembic::AbcGeom::OSubD obj(iParent, name.asChar(), sf, iTimeIndex);
         mSubDSchema = obj.getSchema();
 
         Alembic::AbcGeom::OV2fGeomParam::Sample uvSamp;
@@ -404,11 +410,6 @@ MayaMeshWriter::MayaMeshWriter(MDagPath & iDag,
     }
     else
     {
-        Alembic::Abc::SparseFlag sf = Alembic::Abc::kFull;
-        if ( !mWriteGeometry )
-        {
-            sf = Alembic::Abc::kSparse;
-        }
         Alembic::AbcGeom::OPolyMesh obj(iParent, name.asChar(), sf, iTimeIndex);
         mPolySchema = obj.getSchema();
 
@@ -1007,24 +1008,36 @@ void MayaMeshWriter::writeSubD(
     std::vector<Alembic::Util::int32_t> facePoints;
     std::vector<Alembic::Util::int32_t> pointCounts;
 
-    fillTopology(points, facePoints, pointCounts);
+    if( mWriteGeometry )
+    {
+        fillTopology(points, facePoints, pointCounts);
+    }
 
-    Alembic::AbcGeom::OSubDSchema::Sample samp(
-        Alembic::AbcGeom::V3fArraySample((const Imath::V3f *)&points.front(),
-            points.size() / 3),
-        Alembic::Abc::Int32ArraySample(facePoints),
-        Alembic::Abc::Int32ArraySample(pointCounts));
-    samp.setUVs( iUVs );
+    Alembic::AbcGeom::OSubDSchema::Sample samp;
 
-    MPlug plug = lMesh.findPlug("faceVaryingInterpolateBoundary");
+    if ( !mWriteGeometry )
+    {
+        samp.setUVs( iUVs );
+        mSubDSchema.set(samp);
+        writeColor();
+        writeUVSets();
+        return;
+    }
+
+    samp.setPositions(Alembic::AbcGeom::V3fArraySample(
+        (const Imath::V3f *)&points.front(), points.size() / 3));
+    samp.setFaceIndices(Alembic::Abc::Int32ArraySample(facePoints));
+    samp.setFaceCounts(Alembic::Abc::Int32ArraySample(pointCounts));
+
+    MPlug plug = lMesh.findPlug("faceVaryingInterpolateBoundary", true);
     if (!plug.isNull())
         samp.setFaceVaryingInterpolateBoundary(plug.asInt());
 
-    plug = lMesh.findPlug("interpolateBoundary");
+    plug = lMesh.findPlug("interpolateBoundary", true);
     if (!plug.isNull())
         samp.setInterpolateBoundary(plug.asInt());
 
-    plug = lMesh.findPlug("faceVaryingPropagateCorners");
+    plug = lMesh.findPlug("faceVaryingPropagateCorners", true);
     if (!plug.isNull())
         samp.setFaceVaryingPropagateCorners(plug.asInt());
 
@@ -1092,6 +1105,7 @@ void MayaMeshWriter::writeSubD(
     }
 #endif
 
+    samp.setUVs( iUVs );
     mSubDSchema.set(samp);
     writeColor();
     writeUVSets();
